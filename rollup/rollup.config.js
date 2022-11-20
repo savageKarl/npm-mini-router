@@ -20,7 +20,7 @@ const output = [
   },
   {
     format: "cjs",
-    file: path.resolve(distPath, "index.js"),
+    file: path.resolve(distPath, "index.cjs"),
     sourcemap: true,
   },
 ];
@@ -34,7 +34,7 @@ if (env === "dev") {
     },
     {
       format: "cjs",
-      file: path.resolve(devLibsPath, "index.js"),
+      file: path.resolve(devLibsPath, "index.cjs"),
       sourcemap: true,
     }
   );
