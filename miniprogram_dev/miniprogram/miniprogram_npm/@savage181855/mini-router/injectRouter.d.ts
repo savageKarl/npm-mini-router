@@ -1,1 +1,1 @@
-export declare function injectRouter(): void;
+export declare function injectRouter(router: any): void;

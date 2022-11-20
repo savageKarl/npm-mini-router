@@ -8,27 +8,39 @@ const routes: RouteConfigRaw[] = [
   {
     name: "log",
     path: "/pages/log/log",
+    type: "tab",
+  },
+  {
+    name: "other",
+    type: "tab",
+    path: "/pages/other/other",
   },
 ];
 
 export const router = createRouter({ routes });
-
 router.beforeEnter((from, to, next) => {
-  console.debug(from, to, next, '1');
-  // debugger;
   next();
 });
 
-router.beforeEnter((from, to, next) => {
-  console.debug(from, to, next, '2');
+router.afterEnter((from, to) => {
+  console.debug(from, to, "afterEnter");
   // debugger;
-  next();
 });
 
-router.onRouteSuccess(function(res)  {
-  console.debug(res);
-})
+router.afterEnter((from, to) => {
+  console.debug(from, to, "afterEnter2");
+  // debugger;
+});
+// router.beforeEnter((from, to, next) => {
+//   console.debug(from, to, next, '2');
+//   // debugger;
+//   next();
+// });
 
-router.onRouteFail(function(res)  {
+router.onRouteSuccess(function (res) {
   console.debug(res);
-})
+});
+
+router.onRouteFail(function (res) {
+  console.debug(res);
+});

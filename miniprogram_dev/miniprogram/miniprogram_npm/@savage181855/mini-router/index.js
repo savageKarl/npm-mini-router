@@ -26,15 +26,47 @@ function runQueue(queue, fn, cb) {
     step(0);
 }
 
-const routerRef = {
-    ref: {},
-};
+function injectRouter(router) {
+    const originApp = App;
+    App = function (options) {
+        const newOptions = Object.assign(Object.assign({}, options), { onLaunch(o) {
+                var _a;
+                this.$router = router;
+                (_a = options === null || options === void 0 ? void 0 : options.onLaunch) === null || _a === void 0 ? void 0 : _a.call(this, o);
+            } });
+        return originApp(newOptions);
+    };
+    const OriginPage = Page;
+    Page = function (options) {
+        const newOptions = Object.assign(Object.assign({}, options), { onLoad(o) {
+                var _a;
+                this.$router = router;
+                (_a = options === null || options === void 0 ? void 0 : options.onLoad) === null || _a === void 0 ? void 0 : _a.call(this, o);
+            } });
+        return OriginPage(newOptions);
+    };
+    const OriginComponent = Component;
+    Component = function (options) {
+        const newOptions = Object.assign(Object.assign({}, options), { attached() {
+                var _a;
+                this.$router = router;
+                (_a = options === null || options === void 0 ? void 0 : options.attached) === null || _a === void 0 ? void 0 : _a.call(this);
+            }, lifetimes: {
+                attached() {
+                    var _a, _b;
+                    this.$router = router;
+                    (_b = (_a = options === null || options === void 0 ? void 0 : options.lifetimes) === null || _a === void 0 ? void 0 : _a.attached) === null || _b === void 0 ? void 0 : _b.call(this);
+                },
+            } });
+        return OriginComponent(newOptions);
+    };
+}
 
 class Router {
     constructor(routes) {
         this.params = null;
-        this.route = {};
-        this.toRoute = {};
+        this.route = null;
+        this.toRoute = null;
         this.jumpFn = function () { };
         this.beforeHooks = [];
         this.afterHooks = [];
@@ -53,7 +85,7 @@ class Router {
             return;
         }
         this.params = r.params;
-        this.toRoute = r;
+        this.toRoute = this.getCurrentRoute();
         this.jumpFn = () => {
             return new Promise((resolve, reject) => {
                 var _a;
@@ -68,7 +100,7 @@ class Router {
                     }
                     const pages = getCurrentPages();
                     const index = pages.findIndex((item) => {
-                        item.route === (route === null || route === void 0 ? void 0 : route.path);
+                        "/" + item.route === (route === null || route === void 0 ? void 0 : route.path);
                     });
                     if (index !== -1) {
                         const level = pages.length - index;
@@ -95,7 +127,7 @@ class Router {
             return;
         }
         this.params = r.params;
-        this.toRoute = r;
+        this.toRoute = this.getCurrentRoute();
         this.jumpFn = () => {
             return new Promise((resolve, reject) => {
                 var _a;
@@ -116,7 +148,7 @@ class Router {
             return;
         }
         this.params = r.params;
-        this.toRoute = r;
+        this.toRoute = this.getCurrentRoute();
         const route = this.routes.filter((item) => item.name === r.name || item.path === r.path)[0];
         let level;
         if (r.level) {
@@ -150,7 +182,7 @@ class Router {
             return;
         }
         this.params = r.params;
-        this.toRoute = r;
+        this.toRoute = this.getCurrentRoute();
         this.jumpFn = () => {
             return new Promise((resolve, reject) => {
                 var _a;
@@ -195,15 +227,23 @@ class Router {
             }
         };
         runQueue(queue, iterator, () => {
-            debugger;
+            // debugger;
             this.jumpFn()
                 .then((res) => {
+                this.afterHooks.forEach(fn => fn(this.route, this.toRoute));
                 this.routeSuccessFns.forEach((item) => item(res));
+                this.route = this.getCurrentRoute();
+                this.toRoute = null;
             })
                 .catch((err) => {
                 this.routeFailFns.forEach((item) => item(err));
             });
         });
+    }
+    getCurrentRoute() {
+        const url = this.getCurrPage().route;
+        const route = this.routes.filter((item) => item.path === "/" + url)[0];
+        return route;
     }
     onRouteSuccess(fn) {
         return registerHook(this.routeSuccessFns, fn);
@@ -222,47 +262,13 @@ class Router {
         this.params = null;
         return p;
     }
+    inject() {
+        injectRouter(this);
+    }
 }
 function createRouter(config) {
     const router = new Router(config.routes);
-    routerRef.ref = router;
     return router;
-}
-
-function injectRouter() {
-    const originApp = App;
-    App = function (options) {
-        const newOptions = Object.assign(Object.assign({}, options), { onLaunch(o) {
-                var _a;
-                this.$router = routerRef.ref;
-                (_a = options === null || options === void 0 ? void 0 : options.onLaunch) === null || _a === void 0 ? void 0 : _a.call(this, o);
-            } });
-        return originApp(newOptions);
-    };
-    const OriginPage = Page;
-    Page = function (options) {
-        const newOptions = Object.assign(Object.assign({}, options), { onLoad(o) {
-                var _a;
-                this.$router = routerRef.ref;
-                (_a = options === null || options === void 0 ? void 0 : options.onLoad) === null || _a === void 0 ? void 0 : _a.call(this, o);
-            } });
-        return OriginPage(newOptions);
-    };
-    const OriginComponent = Component;
-    Component = function (options) {
-        const newOptions = Object.assign(Object.assign({}, options), { attached() {
-                var _a;
-                this.$router = routerRef.ref;
-                (_a = options === null || options === void 0 ? void 0 : options.attached) === null || _a === void 0 ? void 0 : _a.call(this);
-            }, lifetimes: {
-                attached() {
-                    var _a, _b;
-                    this.$router = routerRef.ref;
-                    (_b = (_a = options === null || options === void 0 ? void 0 : options.lifetimes) === null || _a === void 0 ? void 0 : _a.attached) === null || _b === void 0 ? void 0 : _b.call(this);
-                },
-            } });
-        return OriginComponent(newOptions);
-    };
 }
 
 export { createRouter, injectRouter };

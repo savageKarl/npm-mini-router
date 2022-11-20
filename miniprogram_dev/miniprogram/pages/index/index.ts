@@ -3,14 +3,14 @@ import { router } from "../../router/index";
 Page({
   data: {},
   onLoad() {
-    // console.debug(router)
     // console.debug(this)
     // console.debug(getCurrentPages());
 
-    router.push({ name: "log" });
     setTimeout(() => {
       // wx.navigateBack({delta: 1})
-      router.back({ level: 1 });
-    }, 1000);
+      console.debug(this)
+      // this.$router.push({name: 'other'})
+      // router.reLaunch({ name: 'other' });
+    }, 2000);
   },
 });

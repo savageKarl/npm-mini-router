@@ -1,7 +1,8 @@
 {
   "pages": [
     "pages/index/index",
-    "pages/log/log"
+    "pages/log/log",
+    "pages/other/other"
   ],
   "window": {
     "backgroundTextStyle": "light",
@@ -9,5 +10,16 @@
     "navigationBarTitleText": "Weixin",
     "navigationBarTextStyle": "black"
   },
-  "sitemapLocation": "sitemap.json"
+  "sitemapLocation": "sitemap.json",
+  "tabBar": {
+    "list": [{
+        "pagePath": "pages/other/other",
+        "text": "other"
+      },
+      {
+        "pagePath": "pages/log/log",
+        "text": "log"
+      }
+    ]
+  }
 }

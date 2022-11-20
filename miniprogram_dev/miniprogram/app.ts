@@ -1,9 +1,10 @@
-import {injectRouter} from '@savage181855/mini-router'
+import {router} from './router/index'
 
-injectRouter();
+router.inject();
 
 App<IAppOption>({
   globalData: {},
   onLaunch() {
+    console.debug(this)
   }
 })

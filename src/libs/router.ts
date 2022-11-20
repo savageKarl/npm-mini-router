@@ -9,8 +9,8 @@ import {
 } from "./types";
 
 import { registerHook, runQueue } from "./utils";
+import {injectRouter} from './injectRouter'
 
-import { routerRef } from "./routerRef";
 
 class Router {
   constructor(routes: RouteConfigRaw[]) {
@@ -19,8 +19,8 @@ class Router {
 
   private params: any = null;
   private routes: RouteConfigRaw[];
-  route = {} as RouteOptions | RouteBackOptions;
-  private toRoute = {} as RouteOptions | RouteBackOptions;
+  route: RouteConfigRaw | null = null;
+  private toRoute: RouteConfigRaw | null = null;
   private jumpFn = function () {} as Callback<Promise<CallbackResult>>;
 
   private beforeHooks: Callback[] = [];
@@ -42,7 +42,7 @@ class Router {
       return;
     }
     this.params = r.params;
-    this.toRoute = r;
+    this.toRoute = this.getCurrentRoute();
     this.jumpFn = () => {
       return new Promise((resolve, reject) => {
         const route = this.routes.filter(
@@ -59,7 +59,7 @@ class Router {
 
           const pages = getCurrentPages();
           const index = pages.findIndex((item) => {
-            item.route === route?.path;
+            "/" + item.route === route?.path;
           });
 
           if (index !== -1) {
@@ -87,7 +87,7 @@ class Router {
       return;
     }
     this.params = r.params;
-    this.toRoute = r;
+    this.toRoute = this.getCurrentRoute();
 
     this.jumpFn = () => {
       return new Promise((resolve, reject) => {
@@ -112,7 +112,7 @@ class Router {
       return;
     }
     this.params = r.params;
-    this.toRoute = r;
+    this.toRoute = this.getCurrentRoute();
 
     const route = this.routes.filter(
       (item) => item.name === r.name || item.path === r.path
@@ -150,7 +150,7 @@ class Router {
       return;
     }
     this.params = r.params;
-    this.toRoute = r;
+    this.toRoute = this.getCurrentRoute();
 
     this.jumpFn = () => {
       return new Promise((resolve, reject) => {
@@ -199,15 +199,24 @@ class Router {
     };
 
     runQueue(queue, iterator, () => {
-      debugger;
+      // debugger;
       this.jumpFn()
         .then((res) => {
+          this.afterHooks.forEach(fn=> fn(this.route, this.toRoute));
           this.routeSuccessFns.forEach((item) => item(res));
+          this.route = this.getCurrentRoute();
+          this.toRoute = null;
         })
         .catch((err) => {
           this.routeFailFns.forEach((item) => item(err));
         });
     });
+  }
+
+  private getCurrentRoute() {
+    const url = this.getCurrPage().route;
+    const route = this.routes.filter((item) => item.path === "/" + url)[0];
+    return route;
   }
 
   onRouteSuccess(fn: (o: CallbackResult) => any) {
@@ -231,22 +240,13 @@ class Router {
     this.params = null;
     return p;
   }
-}
 
-const routes: RouteConfigRaw[] = [
-  {
-    name: "index",
-    type: "tab",
-    path: "/pages/index/index",
-  },
-  {
-    name: "index",
-    path: "/pages/index/index",
-  },
-];
+  inject() {
+    injectRouter(this);
+  }
+}
 
 export function createRouter(config: { routes: RouteConfigRaw[] }) {
   const router = new Router(config.routes);
-  routerRef.ref = router;
   return router;
 }

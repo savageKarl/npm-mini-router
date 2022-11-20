@@ -19,7 +19,6 @@
     "lib": ["ES2020"],
     "typeRoots": [
       "./typings",
-      "node_modules"
     ]
   },
   "include": [

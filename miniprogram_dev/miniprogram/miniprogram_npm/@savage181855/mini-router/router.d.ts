@@ -5,7 +5,7 @@ declare class Router {
     constructor(routes: RouteConfigRaw[]);
     private params;
     private routes;
-    route: RouteOptions | RouteBackOptions;
+    route: RouteConfigRaw | null;
     private toRoute;
     private jumpFn;
     private beforeHooks;
@@ -20,11 +20,13 @@ declare class Router {
     reLaunch(r: RouteOptions): void;
     private getPage;
     private handleRouteGuard;
+    private getCurrentRoute;
     onRouteSuccess(fn: (o: CallbackResult) => any): () => void;
     onRouteFail(fn: (o: CallbackResult) => any): () => void;
     getCurrPage(): WechatMiniprogram.Page.Instance<WechatMiniprogram.IAnyObject, WechatMiniprogram.IAnyObject>;
     getPrevPage(): WechatMiniprogram.Page.Instance<WechatMiniprogram.IAnyObject, WechatMiniprogram.IAnyObject>;
     getParams(): any;
+    inject(): void;
 }
 export declare function createRouter(config: {
     routes: RouteConfigRaw[];
