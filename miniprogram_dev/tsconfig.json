@@ -18,7 +18,8 @@
     "strictPropertyInitialization": true,
     "lib": ["ES2020"],
     "typeRoots": [
-      "./typings"
+      "./typings",
+      "node_modules"
     ]
   },
   "include": [

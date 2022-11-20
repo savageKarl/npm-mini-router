@@ -18,14 +18,14 @@ export type RoutePathOptions = {
 export type RouteOptions = {
   name?: string;
   path?: string;
-  params: WechatMiniprogram.IAnyObject;
+  params?: WechatMiniprogram.IAnyObject;
   delay?: number;
 };
 
 export type RouteBackOptions = RouteOptions & { level?: number };
 
 export type CallbackResult = WechatMiniprogram.GeneralCallbackResult;
-export type Callback = (...args: any) => any;
+export type Callback<R = any> = (...args: any) => R;
 
 export type AppOptions = WechatMiniprogram.App.Options<{ $router: any }>;
 export type PageOptions = WechatMiniprogram.Page.Options<{}, { $router: any }>;
@@ -35,3 +35,11 @@ export type ComponentOptions = WechatMiniprogram.Component.Options<
   {},
   { $router: any }
 >;
+
+export type BeforeHookRouteOptions =
+  | (RouteOptions & {
+      replace: boolean;
+    })
+  | false
+  | true
+  | string;

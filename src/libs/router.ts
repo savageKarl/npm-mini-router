@@ -5,6 +5,7 @@ import {
   CallbackResult,
   Callback,
   RouteBackOptions,
+  BeforeHookRouteOptions,
 } from "./types";
 
 import { registerHook, runQueue } from "./utils";
@@ -18,11 +19,15 @@ class Router {
 
   private params: any = null;
   private routes: RouteConfigRaw[];
-  private route = {} as RouteOptions | RouteBackOptions;
+  route = {} as RouteOptions | RouteBackOptions;
   private toRoute = {} as RouteOptions | RouteBackOptions;
+  private jumpFn = function () {} as Callback<Promise<CallbackResult>>;
 
   private beforeHooks: Callback[] = [];
   private afterHooks: Callback[] = [];
+
+  private routeSuccessFns: Callback[] = [];
+  private routeFailFns: Callback[] = [];
 
   beforeEnter(fn: Callback) {
     registerHook(this.beforeHooks, fn);
@@ -37,20 +42,44 @@ class Router {
       return;
     }
     this.params = r.params;
-    return new Promise((resolve, reject) => {
-      const route = this.routes.filter(
-        (item) => item.name === r.name || item.path === r.path
-      )[0];
-      setTimeout(() => {
-        if (route.type === "tab") {
-          (wx as any)[route.type === "tab" ? "switchTab" : "navigateTo"]({
-            url: route.path,
-            success: (res: CallbackResult) => resolve(res),
-            fail: (err: CallbackResult) => reject(err),
+    this.toRoute = r;
+    this.jumpFn = () => {
+      return new Promise((resolve, reject) => {
+        const route = this.routes.filter(
+          (item) => item.name === r.name || item.path === r.path
+        )[0];
+        setTimeout(() => {
+          if (route?.type === "tab") {
+            wx.switchTab({
+              url: route.path,
+              success: (res: CallbackResult) => resolve(res),
+              fail: (err: CallbackResult) => reject(err),
+            });
+          }
+
+          const pages = getCurrentPages();
+          const index = pages.findIndex((item) => {
+            item.route === route?.path;
           });
-        }
-      }, r.delay ?? 0);
-    });
+
+          if (index !== -1) {
+            const level = pages.length - index;
+            wx.navigateBack({
+              delta: level,
+              success: (res: CallbackResult) => resolve(res),
+              fail: (err: CallbackResult) => reject(err),
+            });
+          } else {
+            wx.navigateTo({
+              url: route?.path,
+              success: (res: CallbackResult) => resolve(res),
+              fail: (err: CallbackResult) => reject(err),
+            });
+          }
+        }, r.delay ?? 0);
+      });
+    };
+    this.handleRouteGuard();
   }
 
   replace(r: RouteOptions) {
@@ -58,18 +87,24 @@ class Router {
       return;
     }
     this.params = r.params;
-    return new Promise((resolve, reject) => {
-      const route = this.routes.filter(
-        (item) => item.name === r.name || item.path === r.path
-      )[0];
-      setTimeout(() => {
-        wx.redirectTo({
-          url: route.path,
-          success: (res: CallbackResult) => resolve(res),
-          fail: (err: CallbackResult) => reject(err),
-        });
-      }, r.delay ?? 0);
-    });
+    this.toRoute = r;
+
+    this.jumpFn = () => {
+      return new Promise((resolve, reject) => {
+        const route = this.routes.filter(
+          (item) => item.name === r.name || item.path === r.path
+        )[0];
+        setTimeout(() => {
+          wx.redirectTo({
+            url: route.path,
+            success: (res: CallbackResult) => resolve(res),
+            fail: (err: CallbackResult) => reject(err),
+          });
+        }, r.delay ?? 0);
+      });
+    };
+
+    this.handleRouteGuard();
   }
 
   back(r: RouteBackOptions) {
@@ -77,24 +112,37 @@ class Router {
       return;
     }
     this.params = r.params;
+    this.toRoute = r;
+
     const route = this.routes.filter(
       (item) => item.name === r.name || item.path === r.path
     )[0];
 
-    let l: number;
+    let level: number;
+    if (r.level) {
+      level = r.level;
+    } else {
+      const pages = getCurrentPages();
+      const index = pages.findIndex((item) => {
+        item.route === route?.path;
+      });
+      if (index !== -1) {
+        level = pages.length - index;
+      }
+    }
+    this.jumpFn = () => {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          wx.navigateBack({
+            delta: level,
+            success: (res: CallbackResult) => resolve(res),
+            fail: (err: CallbackResult) => reject(err),
+          });
+        }, r.delay ?? 0);
+      });
+    };
 
-    // level parameter first
-    if (r.level) l = r.level;
-
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        wx.navigateBack({
-          delta: l,
-          success: (res: CallbackResult) => resolve(res),
-          fail: (err: CallbackResult) => reject(err),
-        });
-      }, r.delay ?? 0);
-    });
+    this.handleRouteGuard();
   }
 
   reLaunch(r: RouteOptions) {
@@ -102,23 +150,72 @@ class Router {
       return;
     }
     this.params = r.params;
-    return new Promise((resolve, reject) => {
-      const route = this.routes.filter(
-        (item) => item.name === r.name || item.path === r.path
-      )[0];
-      setTimeout(() => {
-        wx.reLaunch({
-          url: route.path,
-          success: (res: CallbackResult) => resolve(res),
-          fail: (err: CallbackResult) => reject(err),
-        });
-      }, r.delay ?? 0);
-    });
+    this.toRoute = r;
+
+    this.jumpFn = () => {
+      return new Promise((resolve, reject) => {
+        const route = this.routes.filter(
+          (item) => item.name === r.name || item.path === r.path
+        )[0];
+        setTimeout(() => {
+          wx.reLaunch({
+            url: route.path,
+            success: (res: CallbackResult) => resolve(res),
+            fail: (err: CallbackResult) => reject(err),
+          });
+        }, r.delay ?? 0);
+      });
+    };
+    this.handleRouteGuard();
   }
 
   private getPage(index = 1) {
     const pages = getCurrentPages();
     return pages[pages.length - index];
+  }
+
+  private handleRouteGuard() {
+    const queue = this.beforeHooks;
+
+    const iterator = (hook: Callback, next: Callback) => {
+      try {
+        hook(this.route, this.toRoute, (to: BeforeHookRouteOptions) => {
+          if (to === false) {
+            // TODO 打断路由
+          } else if (
+            typeof to === "object" &&
+            (typeof to.path === "string" || typeof to.name === "string")
+          ) {
+            to.replace ? this.replace(to) : this.push(to);
+          } else if (typeof to === "string") {
+            this.push({ name: to, path: to });
+          } else {
+            next(to);
+          }
+        });
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
+    runQueue(queue, iterator, () => {
+      debugger;
+      this.jumpFn()
+        .then((res) => {
+          this.routeSuccessFns.forEach((item) => item(res));
+        })
+        .catch((err) => {
+          this.routeFailFns.forEach((item) => item(err));
+        });
+    });
+  }
+
+  onRouteSuccess(fn: (o: CallbackResult) => any) {
+    return registerHook(this.routeSuccessFns, fn);
+  }
+
+  onRouteFail(fn: (o: CallbackResult) => any) {
+    return registerHook(this.routeFailFns, fn);
   }
 
   getCurrPage() {

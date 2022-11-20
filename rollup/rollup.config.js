@@ -15,28 +15,28 @@ const env = process.env.NODE_ENV;
 const output = [
   {
     format: "esm",
-    file: path.resolve(distPath, "index.mjs"),
+    file: path.resolve(distPath, "index.js"),
     sourcemap: true,
   },
-  {
-    format: "cjs",
-    file: path.resolve(distPath, "index.cjs"),
-    sourcemap: true,
-  },
+  // {
+  //   format: "cjs",
+  //   file: path.resolve(distPath, "index.cjs"),
+  //   sourcemap: true,
+  // },
 ];
 
 if (env === "dev") {
   output.push(
     {
       format: "esm",
-      file: path.resolve(devLibsPath, "index.mjs"),
+      file: path.resolve(devLibsPath, "index.js"),
       sourcemap: true,
     },
-    {
-      format: "cjs",
-      file: path.resolve(devLibsPath, "index.cjs"),
-      sourcemap: true,
-    }
+    // {
+    //   format: "cjs",
+    //   file: path.resolve(devLibsPath, "index.cjs"),
+    //   sourcemap: true,
+    // }
   );
 }
 

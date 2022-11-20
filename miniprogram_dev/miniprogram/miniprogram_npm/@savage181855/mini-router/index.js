@@ -1,7 +1,3 @@
-'use strict';
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
 function registerHook(list, fn) {
     list.push(fn);
     return () => {
@@ -10,6 +6,24 @@ function registerHook(list, fn) {
         if (i > -1)
             list.splice(i, 1);
     };
+}
+function runQueue(queue, fn, cb) {
+    const step = (index) => {
+        if (index >= queue.length) {
+            cb();
+        }
+        else {
+            if (queue[index]) {
+                fn(queue[index], () => {
+                    step(index + 1);
+                });
+            }
+            else {
+                step(index + 1);
+            }
+        }
+    };
+    step(0);
 }
 
 const routerRef = {
@@ -21,8 +35,11 @@ class Router {
         this.params = null;
         this.route = {};
         this.toRoute = {};
+        this.jumpFn = function () { };
         this.beforeHooks = [];
         this.afterHooks = [];
+        this.routeSuccessFns = [];
+        this.routeFailFns = [];
         this.routes = routes;
     }
     beforeEnter(fn) {
@@ -36,78 +53,163 @@ class Router {
             return;
         }
         this.params = r.params;
-        return new Promise((resolve, reject) => {
-            var _a;
-            const route = this.routes.filter((item) => item.name === r.name || item.path === r.path)[0];
-            setTimeout(() => {
-                if (route.type === "tab") {
-                    wx[route.type === "tab" ? "switchTab" : "navigateTo"]({
-                        url: route.path,
-                        success: (res) => resolve(res),
-                        fail: (err) => reject(err),
+        this.toRoute = r;
+        this.jumpFn = () => {
+            return new Promise((resolve, reject) => {
+                var _a;
+                const route = this.routes.filter((item) => item.name === r.name || item.path === r.path)[0];
+                setTimeout(() => {
+                    if ((route === null || route === void 0 ? void 0 : route.type) === "tab") {
+                        wx.switchTab({
+                            url: route.path,
+                            success: (res) => resolve(res),
+                            fail: (err) => reject(err),
+                        });
+                    }
+                    const pages = getCurrentPages();
+                    const index = pages.findIndex((item) => {
+                        item.route === (route === null || route === void 0 ? void 0 : route.path);
                     });
-                }
-            }, (_a = r.delay) !== null && _a !== void 0 ? _a : 0);
-        });
+                    if (index !== -1) {
+                        const level = pages.length - index;
+                        wx.navigateBack({
+                            delta: level,
+                            success: (res) => resolve(res),
+                            fail: (err) => reject(err),
+                        });
+                    }
+                    else {
+                        wx.navigateTo({
+                            url: route === null || route === void 0 ? void 0 : route.path,
+                            success: (res) => resolve(res),
+                            fail: (err) => reject(err),
+                        });
+                    }
+                }, (_a = r.delay) !== null && _a !== void 0 ? _a : 0);
+            });
+        };
+        this.handleRouteGuard();
     }
     replace(r) {
         if (!r.name && !r.path) {
             return;
         }
         this.params = r.params;
-        return new Promise((resolve, reject) => {
-            var _a;
-            const route = this.routes.filter((item) => item.name === r.name || item.path === r.path)[0];
-            setTimeout(() => {
-                wx.redirectTo({
-                    url: route.path,
-                    success: (res) => resolve(res),
-                    fail: (err) => reject(err),
-                });
-            }, (_a = r.delay) !== null && _a !== void 0 ? _a : 0);
-        });
+        this.toRoute = r;
+        this.jumpFn = () => {
+            return new Promise((resolve, reject) => {
+                var _a;
+                const route = this.routes.filter((item) => item.name === r.name || item.path === r.path)[0];
+                setTimeout(() => {
+                    wx.redirectTo({
+                        url: route.path,
+                        success: (res) => resolve(res),
+                        fail: (err) => reject(err),
+                    });
+                }, (_a = r.delay) !== null && _a !== void 0 ? _a : 0);
+            });
+        };
+        this.handleRouteGuard();
     }
     back(r) {
         if (!r.name && !r.path && !r.level) {
             return;
         }
         this.params = r.params;
-        this.routes.filter((item) => item.name === r.name || item.path === r.path)[0];
-        let l;
-        // level parameter first
-        if (r.level)
-            l = r.level;
-        return new Promise((resolve, reject) => {
-            var _a;
-            setTimeout(() => {
-                wx.navigateBack({
-                    delta: l,
-                    success: (res) => resolve(res),
-                    fail: (err) => reject(err),
-                });
-            }, (_a = r.delay) !== null && _a !== void 0 ? _a : 0);
-        });
+        this.toRoute = r;
+        const route = this.routes.filter((item) => item.name === r.name || item.path === r.path)[0];
+        let level;
+        if (r.level) {
+            level = r.level;
+        }
+        else {
+            const pages = getCurrentPages();
+            const index = pages.findIndex((item) => {
+                item.route === (route === null || route === void 0 ? void 0 : route.path);
+            });
+            if (index !== -1) {
+                level = pages.length - index;
+            }
+        }
+        this.jumpFn = () => {
+            return new Promise((resolve, reject) => {
+                var _a;
+                setTimeout(() => {
+                    wx.navigateBack({
+                        delta: level,
+                        success: (res) => resolve(res),
+                        fail: (err) => reject(err),
+                    });
+                }, (_a = r.delay) !== null && _a !== void 0 ? _a : 0);
+            });
+        };
+        this.handleRouteGuard();
     }
     reLaunch(r) {
         if (!r.name && !r.path) {
             return;
         }
         this.params = r.params;
-        return new Promise((resolve, reject) => {
-            var _a;
-            const route = this.routes.filter((item) => item.name === r.name || item.path === r.path)[0];
-            setTimeout(() => {
-                wx.reLaunch({
-                    url: route.path,
-                    success: (res) => resolve(res),
-                    fail: (err) => reject(err),
-                });
-            }, (_a = r.delay) !== null && _a !== void 0 ? _a : 0);
-        });
+        this.toRoute = r;
+        this.jumpFn = () => {
+            return new Promise((resolve, reject) => {
+                var _a;
+                const route = this.routes.filter((item) => item.name === r.name || item.path === r.path)[0];
+                setTimeout(() => {
+                    wx.reLaunch({
+                        url: route.path,
+                        success: (res) => resolve(res),
+                        fail: (err) => reject(err),
+                    });
+                }, (_a = r.delay) !== null && _a !== void 0 ? _a : 0);
+            });
+        };
+        this.handleRouteGuard();
     }
     getPage(index = 1) {
         const pages = getCurrentPages();
         return pages[pages.length - index];
+    }
+    handleRouteGuard() {
+        const queue = this.beforeHooks;
+        const iterator = (hook, next) => {
+            try {
+                hook(this.route, this.toRoute, (to) => {
+                    if (to === false) {
+                        // TODO 打断路由
+                    }
+                    else if (typeof to === "object" &&
+                        (typeof to.path === "string" || typeof to.name === "string")) {
+                        to.replace ? this.replace(to) : this.push(to);
+                    }
+                    else if (typeof to === "string") {
+                        this.push({ name: to, path: to });
+                    }
+                    else {
+                        next(to);
+                    }
+                });
+            }
+            catch (error) {
+                console.log(error);
+            }
+        };
+        runQueue(queue, iterator, () => {
+            debugger;
+            this.jumpFn()
+                .then((res) => {
+                this.routeSuccessFns.forEach((item) => item(res));
+            })
+                .catch((err) => {
+                this.routeFailFns.forEach((item) => item(err));
+            });
+        });
+    }
+    onRouteSuccess(fn) {
+        return registerHook(this.routeSuccessFns, fn);
+    }
+    onRouteFail(fn) {
+        return registerHook(this.routeFailFns, fn);
     }
     getCurrPage() {
         return this.getPage(1);
@@ -163,6 +265,5 @@ function injectRouter() {
     };
 }
 
-exports.createRouter = createRouter;
-exports.injectRouter = injectRouter;
+export { createRouter, injectRouter };
 //# sourceMappingURL=index.js.map

@@ -1,8 +1,7 @@
 {
   "name": "@savage181855/mini-router",
   "version": "1.0.4",
-  "main": "miniprogram_dist/index.cjs",
-  "module": "miniprogram_dist/index.mjs",
+  "main": "miniprogram_dist/index.js",
   "author": "savage",
   "license": "GPL-3.0",
   "description": "基于 gulp4 + rollup2 搭建的微信小程序组件库打包脚手架",
