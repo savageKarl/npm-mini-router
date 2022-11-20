@@ -12,8 +12,6 @@ const { srcLibsPath, devLibsPath, distPath } = config;
 
 const env = process.env.NODE_ENV;
 
-
-
 const output = [
   {
     format: "esm",

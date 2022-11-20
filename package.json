@@ -1,5 +1,5 @@
 {
-  "name": "mini-component-dev",
+  "name": "@savage181855/mini-router",
   "version": "1.0.4",
   "main": "miniprogram_dist/index.cjs",
   "module": "miniprogram_dist/index.mjs",
