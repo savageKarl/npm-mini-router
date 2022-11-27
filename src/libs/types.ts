@@ -43,3 +43,10 @@ export type BeforeHookRouteOptions =
   | false
   | true
   | string;
+
+export type JumpObject = {
+  promise: Promise<CallbackResult>;
+  resolve: Callback;
+  reject: Callback;
+  fn: Callback;
+};

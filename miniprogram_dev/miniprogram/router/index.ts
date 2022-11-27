@@ -1,4 +1,4 @@
-import { createRouter, RouteConfigRaw } from "@savage181855/mini-router";
+import { , RouteConfigRaw } from "@savage181855/mini-router";
 
 const routes: RouteConfigRaw[] = [
   {

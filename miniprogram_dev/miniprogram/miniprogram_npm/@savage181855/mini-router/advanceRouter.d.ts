@@ -1,7 +1,7 @@
 /// <reference types="miniprogram-api-typings" />
 /// <reference types="miniprogram-api-typings" />
 import { RouteConfigRaw, RouteOptions, CallbackResult, Callback, RouteBackOptions } from "./types";
-declare class Router {
+declare class AdvanceRouter {
     constructor(routes: RouteConfigRaw[]);
     private params;
     private routes;
@@ -30,5 +30,5 @@ declare class Router {
 }
 export declare function createRouter(config: {
     routes: RouteConfigRaw[];
-}): Router;
+}): AdvanceRouter;
 export {};

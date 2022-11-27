@@ -40,3 +40,9 @@ export declare type ComponentOptions = WechatMiniprogram.Component.Options<{}, {
 export declare type BeforeHookRouteOptions = (RouteOptions & {
     replace: boolean;
 }) | false | true | string;
+export declare type JumpObject = {
+    promise: Promise<CallbackResult>;
+    resolve: Callback;
+    reject: Callback;
+    fn: Callback;
+};

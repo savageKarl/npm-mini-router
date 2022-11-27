@@ -6,13 +6,13 @@ import {
   Callback,
   RouteBackOptions,
   BeforeHookRouteOptions,
+  JumpObject,
 } from "./types";
 
 import { registerHook, runQueue } from "./utils";
-import {injectRouter} from './injectRouter'
+import { injectRouter } from "./injectRouter";
 
-
-class Router {
+export class PlainRouter {
   constructor(routes: RouteConfigRaw[]) {
     this.routes = routes;
   }
@@ -21,7 +21,7 @@ class Router {
   private routes: RouteConfigRaw[];
   route: RouteConfigRaw | null = null;
   private toRoute: RouteConfigRaw | null = null;
-  private jumpFn = function () {} as Callback<Promise<CallbackResult>>;
+  private jumpObject = {} as JumpObject;
 
   private beforeHooks: Callback[] = [];
   private afterHooks: Callback[] = [];
@@ -37,14 +37,21 @@ class Router {
     registerHook(this.afterHooks, fn);
   }
 
-  push(r: RouteOptions) {
-    if (!r.name && !r.path) {
-      return;
-    }
+  routeOptionsCheck(r: RouteOptions) {
+    if (!r.name && !r.path) return false;
     this.params = r.params;
     this.toRoute = this.getCurrentRoute();
-    this.jumpFn = () => {
-      return new Promise((resolve, reject) => {
+    return true;
+  }
+
+  push(r: RouteOptions) {
+    if (!this.routeOptionsCheck(r)) return;
+
+    const obj = {} as JumpObject;
+    const promise = new Promise<CallbackResult>((resolve, reject) => {
+      obj.resolve = resolve;
+      obj.reject = reject;
+      obj.fn = () => {
         const route = this.routes.filter(
           (item) => item.name === r.name || item.path === r.path
         )[0];
@@ -77,20 +84,24 @@ class Router {
             });
           }
         }, r.delay ?? 0);
-      });
-    };
+      };
+    });
+
+    obj.promise = promise;
+    this.jumpObject = obj;
     this.handleRouteGuard();
+
+    return promise;
   }
 
   replace(r: RouteOptions) {
-    if (!r.name && !r.path) {
-      return;
-    }
-    this.params = r.params;
-    this.toRoute = this.getCurrentRoute();
+    if (!this.routeOptionsCheck(r)) return;
 
-    this.jumpFn = () => {
-      return new Promise((resolve, reject) => {
+    const obj = {} as JumpObject;
+    const promise = new Promise<CallbackResult>((resolve, reject) => {
+      obj.resolve = resolve;
+      obj.reject = reject;
+      obj.fn = () => {
         const route = this.routes.filter(
           (item) => item.name === r.name || item.path === r.path
         )[0];
@@ -101,18 +112,18 @@ class Router {
             fail: (err: CallbackResult) => reject(err),
           });
         }, r.delay ?? 0);
-      });
-    };
+      };
+    });
 
+    obj.promise = promise;
+    this.jumpObject = obj;
     this.handleRouteGuard();
+
+    return promise;
   }
 
   back(r: RouteBackOptions) {
-    if (!r.name && !r.path && !r.level) {
-      return;
-    }
-    this.params = r.params;
-    this.toRoute = this.getCurrentRoute();
+    if (!this.routeOptionsCheck(r)) return;
 
     const route = this.routes.filter(
       (item) => item.name === r.name || item.path === r.path
@@ -130,8 +141,12 @@ class Router {
         level = pages.length - index;
       }
     }
-    this.jumpFn = () => {
-      return new Promise((resolve, reject) => {
+
+    const obj = {} as JumpObject;
+    const promise = new Promise<CallbackResult>((resolve, reject) => {
+      obj.resolve = resolve;
+      obj.reject = reject;
+      obj.fn = () => {
         setTimeout(() => {
           wx.navigateBack({
             delta: level,
@@ -139,21 +154,24 @@ class Router {
             fail: (err: CallbackResult) => reject(err),
           });
         }, r.delay ?? 0);
-      });
-    };
+      };
+    });
 
+    obj.promise = promise;
+    this.jumpObject = obj;
     this.handleRouteGuard();
+
+    return promise;
   }
 
   reLaunch(r: RouteOptions) {
-    if (!r.name && !r.path) {
-      return;
-    }
-    this.params = r.params;
-    this.toRoute = this.getCurrentRoute();
+    if (!this.routeOptionsCheck(r)) return;
 
-    this.jumpFn = () => {
-      return new Promise((resolve, reject) => {
+    const obj = {} as JumpObject;
+    const promise = new Promise<CallbackResult>((resolve, reject) => {
+      obj.resolve = resolve;
+      obj.reject = reject;
+      obj.fn = () => {
         const route = this.routes.filter(
           (item) => item.name === r.name || item.path === r.path
         )[0];
@@ -164,9 +182,14 @@ class Router {
             fail: (err: CallbackResult) => reject(err),
           });
         }, r.delay ?? 0);
-      });
-    };
+      };
+    });
+
+    obj.promise = promise;
+    this.jumpObject = obj;
     this.handleRouteGuard();
+
+    return promise;
   }
 
   private getPage(index = 1) {
@@ -181,7 +204,7 @@ class Router {
       try {
         hook(this.route, this.toRoute, (to: BeforeHookRouteOptions) => {
           if (to === false) {
-            // TODO 打断路由
+            this.jumpObject.reject({ msg: "this route has been blocked" });
           } else if (
             typeof to === "object" &&
             (typeof to.path === "string" || typeof to.name === "string")
@@ -194,15 +217,17 @@ class Router {
           }
         });
       } catch (error) {
-        console.log(error);
+        console.error(error);
       }
     };
 
     runQueue(queue, iterator, () => {
       // debugger;
-      this.jumpFn()
+      this.jumpObject.fn();
+
+      this.jumpObject.promise
         .then((res) => {
-          this.afterHooks.forEach(fn=> fn(this.route, this.toRoute));
+          this.afterHooks.forEach((fn) => fn(this.route, this.toRoute));
           this.routeSuccessFns.forEach((item) => item(res));
           this.route = this.getCurrentRoute();
           this.toRoute = null;
@@ -244,9 +269,4 @@ class Router {
   inject() {
     injectRouter(this);
   }
-}
-
-export function createRouter(config: { routes: RouteConfigRaw[] }) {
-  const router = new Router(config.routes);
-  return router;
 }

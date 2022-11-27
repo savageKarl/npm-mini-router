@@ -62,12 +62,12 @@ function injectRouter(router) {
     };
 }
 
-class Router {
+class PlainRouter {
     constructor(routes) {
         this.params = null;
         this.route = null;
         this.toRoute = null;
-        this.jumpFn = function () { };
+        this.jumpObject = {};
         this.beforeHooks = [];
         this.afterHooks = [];
         this.routeSuccessFns = [];
@@ -80,14 +80,21 @@ class Router {
     afterEnter(fn) {
         registerHook(this.afterHooks, fn);
     }
-    push(r) {
-        if (!r.name && !r.path) {
-            return;
-        }
+    routeOptionsCheck(r) {
+        if (!r.name && !r.path)
+            return false;
         this.params = r.params;
         this.toRoute = this.getCurrentRoute();
-        this.jumpFn = () => {
-            return new Promise((resolve, reject) => {
+        return true;
+    }
+    push(r) {
+        if (!this.routeOptionsCheck(r))
+            return;
+        const obj = {};
+        const promise = new Promise((resolve, reject) => {
+            obj.resolve = resolve;
+            obj.reject = reject;
+            obj.fn = () => {
                 var _a;
                 const route = this.routes.filter((item) => item.name === r.name || item.path === r.path)[0];
                 setTimeout(() => {
@@ -118,18 +125,21 @@ class Router {
                         });
                     }
                 }, (_a = r.delay) !== null && _a !== void 0 ? _a : 0);
-            });
-        };
+            };
+        });
+        obj.promise = promise;
+        this.jumpObject = obj;
         this.handleRouteGuard();
+        return promise;
     }
     replace(r) {
-        if (!r.name && !r.path) {
+        if (!this.routeOptionsCheck(r))
             return;
-        }
-        this.params = r.params;
-        this.toRoute = this.getCurrentRoute();
-        this.jumpFn = () => {
-            return new Promise((resolve, reject) => {
+        const obj = {};
+        const promise = new Promise((resolve, reject) => {
+            obj.resolve = resolve;
+            obj.reject = reject;
+            obj.fn = () => {
                 var _a;
                 const route = this.routes.filter((item) => item.name === r.name || item.path === r.path)[0];
                 setTimeout(() => {
@@ -139,16 +149,16 @@ class Router {
                         fail: (err) => reject(err),
                     });
                 }, (_a = r.delay) !== null && _a !== void 0 ? _a : 0);
-            });
-        };
+            };
+        });
+        obj.promise = promise;
+        this.jumpObject = obj;
         this.handleRouteGuard();
+        return promise;
     }
     back(r) {
-        if (!r.name && !r.path && !r.level) {
+        if (!this.routeOptionsCheck(r))
             return;
-        }
-        this.params = r.params;
-        this.toRoute = this.getCurrentRoute();
         const route = this.routes.filter((item) => item.name === r.name || item.path === r.path)[0];
         let level;
         if (r.level) {
@@ -163,8 +173,11 @@ class Router {
                 level = pages.length - index;
             }
         }
-        this.jumpFn = () => {
-            return new Promise((resolve, reject) => {
+        const obj = {};
+        const promise = new Promise((resolve, reject) => {
+            obj.resolve = resolve;
+            obj.reject = reject;
+            obj.fn = () => {
                 var _a;
                 setTimeout(() => {
                     wx.navigateBack({
@@ -173,18 +186,21 @@ class Router {
                         fail: (err) => reject(err),
                     });
                 }, (_a = r.delay) !== null && _a !== void 0 ? _a : 0);
-            });
-        };
+            };
+        });
+        obj.promise = promise;
+        this.jumpObject = obj;
         this.handleRouteGuard();
+        return promise;
     }
     reLaunch(r) {
-        if (!r.name && !r.path) {
+        if (!this.routeOptionsCheck(r))
             return;
-        }
-        this.params = r.params;
-        this.toRoute = this.getCurrentRoute();
-        this.jumpFn = () => {
-            return new Promise((resolve, reject) => {
+        const obj = {};
+        const promise = new Promise((resolve, reject) => {
+            obj.resolve = resolve;
+            obj.reject = reject;
+            obj.fn = () => {
                 var _a;
                 const route = this.routes.filter((item) => item.name === r.name || item.path === r.path)[0];
                 setTimeout(() => {
@@ -194,9 +210,12 @@ class Router {
                         fail: (err) => reject(err),
                     });
                 }, (_a = r.delay) !== null && _a !== void 0 ? _a : 0);
-            });
-        };
+            };
+        });
+        obj.promise = promise;
+        this.jumpObject = obj;
         this.handleRouteGuard();
+        return promise;
     }
     getPage(index = 1) {
         const pages = getCurrentPages();
@@ -208,7 +227,7 @@ class Router {
             try {
                 hook(this.route, this.toRoute, (to) => {
                     if (to === false) {
-                        // TODO 打断路由
+                        this.jumpObject.reject({ msg: "this route has been blocked" });
                     }
                     else if (typeof to === "object" &&
                         (typeof to.path === "string" || typeof to.name === "string")) {
@@ -223,14 +242,15 @@ class Router {
                 });
             }
             catch (error) {
-                console.log(error);
+                console.error(error);
             }
         };
         runQueue(queue, iterator, () => {
             // debugger;
-            this.jumpFn()
+            this.jumpObject.fn();
+            this.jumpObject.promise
                 .then((res) => {
-                this.afterHooks.forEach(fn => fn(this.route, this.toRoute));
+                this.afterHooks.forEach((fn) => fn(this.route, this.toRoute));
                 this.routeSuccessFns.forEach((item) => item(res));
                 this.route = this.getCurrentRoute();
                 this.toRoute = null;
@@ -266,10 +286,6 @@ class Router {
         injectRouter(this);
     }
 }
-function createRouter(config) {
-    const router = new Router(config.routes);
-    return router;
-}
 
-export { createRouter, injectRouter };
+export { PlainRouter, injectRouter };
 //# sourceMappingURL=index.js.map
