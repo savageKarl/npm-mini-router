@@ -63,7 +63,7 @@ function injectRouter(router) {
 }
 
 class PlainRouter {
-    constructor(routes) {
+    constructor() {
         this.params = null;
         this.route = null;
         this.toRoute = null;
@@ -72,7 +72,6 @@ class PlainRouter {
         this.afterHooks = [];
         this.routeSuccessFns = [];
         this.routeFailFns = [];
-        this.routes = routes;
     }
     beforeEnter(fn) {
         registerHook(this.beforeHooks, fn);
@@ -81,13 +80,13 @@ class PlainRouter {
         registerHook(this.afterHooks, fn);
     }
     routeOptionsCheck(r) {
-        if (!r.name && !r.path)
+        if (!r.path)
             return false;
         this.params = r.params;
         this.toRoute = this.getCurrentRoute();
         return true;
     }
-    push(r) {
+    navigateTo(r) {
         if (!this.routeOptionsCheck(r))
             return;
         const obj = {};
@@ -96,18 +95,10 @@ class PlainRouter {
             obj.reject = reject;
             obj.fn = () => {
                 var _a;
-                const route = this.routes.filter((item) => item.name === r.name || item.path === r.path)[0];
                 setTimeout(() => {
-                    if ((route === null || route === void 0 ? void 0 : route.type) === "tab") {
-                        wx.switchTab({
-                            url: route.path,
-                            success: (res) => resolve(res),
-                            fail: (err) => reject(err),
-                        });
-                    }
                     const pages = getCurrentPages();
                     const index = pages.findIndex((item) => {
-                        "/" + item.route === (route === null || route === void 0 ? void 0 : route.path);
+                        "/" + item.route === (r === null || r === void 0 ? void 0 : r.path);
                     });
                     if (index !== -1) {
                         const level = pages.length - index;
@@ -119,7 +110,7 @@ class PlainRouter {
                     }
                     else {
                         wx.navigateTo({
-                            url: route === null || route === void 0 ? void 0 : route.path,
+                            url: r === null || r === void 0 ? void 0 : r.path,
                             success: (res) => resolve(res),
                             fail: (err) => reject(err),
                         });
@@ -132,7 +123,7 @@ class PlainRouter {
         this.handleRouteGuard();
         return promise;
     }
-    replace(r) {
+    switchTab(r) {
         if (!this.routeOptionsCheck(r))
             return;
         const obj = {};
@@ -141,10 +132,9 @@ class PlainRouter {
             obj.reject = reject;
             obj.fn = () => {
                 var _a;
-                const route = this.routes.filter((item) => item.name === r.name || item.path === r.path)[0];
                 setTimeout(() => {
-                    wx.redirectTo({
-                        url: route.path,
+                    wx.switchTab({
+                        url: r.path,
                         success: (res) => resolve(res),
                         fail: (err) => reject(err),
                     });
@@ -156,10 +146,32 @@ class PlainRouter {
         this.handleRouteGuard();
         return promise;
     }
-    back(r) {
+    redirectTo(r) {
         if (!this.routeOptionsCheck(r))
             return;
-        const route = this.routes.filter((item) => item.name === r.name || item.path === r.path)[0];
+        const obj = {};
+        const promise = new Promise((resolve, reject) => {
+            obj.resolve = resolve;
+            obj.reject = reject;
+            obj.fn = () => {
+                var _a;
+                setTimeout(() => {
+                    wx.redirectTo({
+                        url: r.path,
+                        success: (res) => resolve(res),
+                        fail: (err) => reject(err),
+                    });
+                }, (_a = r.delay) !== null && _a !== void 0 ? _a : 0);
+            };
+        });
+        obj.promise = promise;
+        this.jumpObject = obj;
+        this.handleRouteGuard();
+        return promise;
+    }
+    navigateBack(r) {
+        if (!this.routeOptionsCheck(r))
+            return;
         let level;
         if (r.level) {
             level = r.level;
@@ -167,7 +179,7 @@ class PlainRouter {
         else {
             const pages = getCurrentPages();
             const index = pages.findIndex((item) => {
-                item.route === (route === null || route === void 0 ? void 0 : route.path);
+                item.route === (r === null || r === void 0 ? void 0 : r.path);
             });
             if (index !== -1) {
                 level = pages.length - index;
@@ -202,10 +214,9 @@ class PlainRouter {
             obj.reject = reject;
             obj.fn = () => {
                 var _a;
-                const route = this.routes.filter((item) => item.name === r.name || item.path === r.path)[0];
                 setTimeout(() => {
                     wx.reLaunch({
-                        url: route.path,
+                        url: r.path,
                         success: (res) => resolve(res),
                         fail: (err) => reject(err),
                     });
@@ -229,12 +240,10 @@ class PlainRouter {
                     if (to === false) {
                         this.jumpObject.reject({ msg: "this route has been blocked" });
                     }
-                    else if (typeof to === "object" &&
-                        (typeof to.path === "string" || typeof to.name === "string")) {
-                        to.replace ? this.replace(to) : this.push(to);
-                    }
-                    else if (typeof to === "string") {
-                        this.push({ name: to, path: to });
+                    else if (typeof to === "object" && typeof to.path === "string") {
+                        to.type === "redirect" ? this.redirectTo(to) : "";
+                        to.type === "switchTab" ? this.switchTab(to) : "";
+                        to.type === "navigate" ? this.navigateTo(to) : "";
                     }
                     else {
                         next(to);
@@ -262,8 +271,7 @@ class PlainRouter {
     }
     getCurrentRoute() {
         const url = this.getCurrPage().route;
-        const route = this.routes.filter((item) => item.path === "/" + url)[0];
-        return route;
+        return url;
     }
     onRouteSuccess(fn) {
         return registerHook(this.routeSuccessFns, fn);

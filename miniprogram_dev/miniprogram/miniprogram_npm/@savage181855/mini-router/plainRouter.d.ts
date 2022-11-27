@@ -1,12 +1,11 @@
 /// <reference types="miniprogram-api-typings" />
 /// <reference types="miniprogram-api-typings" />
 /// <reference types="miniprogram-api-typings" />
-import { RouteConfigRaw, RouteOptions, CallbackResult, Callback, RouteBackOptions } from "./types";
+import { PlainRouteOptions, CallbackResult, Callback, RouteBackOptions } from "./types";
 export declare class PlainRouter {
-    constructor(routes: RouteConfigRaw[]);
+    constructor();
     private params;
-    private routes;
-    route: RouteConfigRaw | null;
+    route: string | null;
     private toRoute;
     private jumpObject;
     private beforeHooks;
@@ -15,11 +14,12 @@ export declare class PlainRouter {
     private routeFailFns;
     beforeEnter(fn: Callback): void;
     afterEnter(fn: Callback): void;
-    routeOptionsCheck(r: RouteOptions): boolean;
-    push(r: RouteOptions): Promise<WechatMiniprogram.GeneralCallbackResult> | undefined;
-    replace(r: RouteOptions): Promise<WechatMiniprogram.GeneralCallbackResult> | undefined;
-    back(r: RouteBackOptions): Promise<WechatMiniprogram.GeneralCallbackResult> | undefined;
-    reLaunch(r: RouteOptions): Promise<WechatMiniprogram.GeneralCallbackResult> | undefined;
+    routeOptionsCheck(r: PlainRouteOptions): boolean;
+    navigateTo(r: PlainRouteOptions): Promise<WechatMiniprogram.GeneralCallbackResult> | undefined;
+    switchTab(r: PlainRouteOptions): Promise<WechatMiniprogram.GeneralCallbackResult> | undefined;
+    redirectTo(r: PlainRouteOptions): Promise<WechatMiniprogram.GeneralCallbackResult> | undefined;
+    navigateBack(r: RouteBackOptions<PlainRouteOptions>): Promise<WechatMiniprogram.GeneralCallbackResult> | undefined;
+    reLaunch(r: PlainRouteOptions): Promise<WechatMiniprogram.GeneralCallbackResult> | undefined;
     private getPage;
     private handleRouteGuard;
     private getCurrentRoute;

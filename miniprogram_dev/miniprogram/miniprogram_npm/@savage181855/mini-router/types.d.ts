@@ -17,13 +17,18 @@ export declare type RoutePathOptions = {
     path: string;
     params: WechatMiniprogram.IAnyObject;
 };
-export declare type RouteOptions = {
+export declare type AdvanceRouteOptions = {
     name?: string;
     path?: string;
     params?: WechatMiniprogram.IAnyObject;
     delay?: number;
 };
-export declare type RouteBackOptions = RouteOptions & {
+export declare type PlainRouteOptions = {
+    path: string;
+    params?: WechatMiniprogram.IAnyObject;
+    delay?: number;
+};
+export declare type RouteBackOptions<T> = T & {
     level?: number;
 };
 export declare type CallbackResult = WechatMiniprogram.GeneralCallbackResult;
@@ -37,9 +42,12 @@ export declare type PageOptions = WechatMiniprogram.Page.Options<{}, {
 export declare type ComponentOptions = WechatMiniprogram.Component.Options<{}, {}, {}, {
     $router: any;
 }>;
-export declare type BeforeHookRouteOptions = (RouteOptions & {
-    replace: boolean;
-}) | false | true | string;
+export declare type AdvanceBeforeHookRouteOptions = (AdvanceRouteOptions & {
+    replace?: boolean;
+}) | false | string;
+export declare type PlainBeforeHookRouteOptions = (PlainRouteOptions & {
+    type: "navigate" | "switchTab" | "redirect";
+}) | false;
 export declare type JumpObject = {
     promise: Promise<CallbackResult>;
     resolve: Callback;

@@ -1,18 +1,18 @@
 import {
   RouteConfigRaw,
-  RouteOptions,
+  AdvanceRouteOptions,
   RouteNameOptions,
   CallbackResult,
   Callback,
   RouteBackOptions,
-  BeforeHookRouteOptions,
+  AdvanceBeforeHookRouteOptions,
   JumpObject,
 } from "./types";
 
 import { registerHook, runQueue } from "./utils";
 import { injectRouter } from "./injectRouter";
 
-export class PlainRouter {
+export class advanceRouter {
   constructor(routes: RouteConfigRaw[]) {
     this.routes = routes;
   }
@@ -37,14 +37,14 @@ export class PlainRouter {
     registerHook(this.afterHooks, fn);
   }
 
-  routeOptionsCheck(r: RouteOptions) {
+  routeOptionsCheck(r: AdvanceRouteOptions) {
     if (!r.name && !r.path) return false;
     this.params = r.params;
     this.toRoute = this.getCurrentRoute();
     return true;
   }
 
-  push(r: RouteOptions) {
+  push(r: AdvanceRouteOptions) {
     if (!this.routeOptionsCheck(r)) return;
 
     const obj = {} as JumpObject;
@@ -94,7 +94,7 @@ export class PlainRouter {
     return promise;
   }
 
-  replace(r: RouteOptions) {
+  replace(r: AdvanceRouteOptions) {
     if (!this.routeOptionsCheck(r)) return;
 
     const obj = {} as JumpObject;
@@ -122,7 +122,7 @@ export class PlainRouter {
     return promise;
   }
 
-  back(r: RouteBackOptions) {
+  back(r: RouteBackOptions<AdvanceRouteOptions>) {
     if (!this.routeOptionsCheck(r)) return;
 
     const route = this.routes.filter(
@@ -164,7 +164,7 @@ export class PlainRouter {
     return promise;
   }
 
-  reLaunch(r: RouteOptions) {
+  reLaunch(r: AdvanceRouteOptions) {
     if (!this.routeOptionsCheck(r)) return;
 
     const obj = {} as JumpObject;
@@ -202,7 +202,7 @@ export class PlainRouter {
 
     const iterator = (hook: Callback, next: Callback) => {
       try {
-        hook(this.route, this.toRoute, (to: BeforeHookRouteOptions) => {
+        hook(this.route, this.toRoute, (to: AdvanceBeforeHookRouteOptions) => {
           if (to === false) {
             this.jumpObject.reject({ msg: "this route has been blocked" });
           } else if (
