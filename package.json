@@ -1,10 +1,18 @@
 {
   "name": "@savage181855/mini-router",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "main": "miniprogram_dist/index.js",
   "author": "savage",
   "license": "GPL-3.0",
-  "description": "基于 gulp4 + rollup2 搭建的微信小程序组件库打包脚手架",
+  "description": "微信小程序路由器，轻量，优雅，高效",
+  "keywords": [
+    "mini-router",
+    "router",
+    "wx-store",
+    "mini-redux",
+    "小程序路由器",
+    "微信小程序路由器"
+  ],
   "scripts": {
     "d:com": "concurrently \"cross-env NODE_ENV=dev gulp watch\" \"npm run shell\"  ",
     "b:com": "cross-env NODE_ENV=pro gulp build",
