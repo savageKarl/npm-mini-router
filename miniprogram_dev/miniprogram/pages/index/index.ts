@@ -3,22 +3,34 @@ import { router } from "../../router/index";
 Page({
   data: {},
   onLoad() {
-    // console.debug(this)
-    // console.debug(getCurrentPages());
     setTimeout(() => {
-      wx.navigateBack({ delta: 1 })
+      // router
+      //   .push({ name: "other" })
+      //   .then((res) => {
+      //     console.debug(res);
+      //   })
+      //   .catch((err) => {
+      //     console.debug(err);
+      //   });
+
+        router
+        .redirectTo({ path: "/pages/log/log", params: { foo: 'bar'} })
         .then((res) => {
           console.debug(res);
         })
         .catch((err) => {
           console.debug(err);
         });
-      // this.$router.push({name: 'other'}).then(res => {
-      //   console.debug(res)
-      // }).catch(err=> {
-      //   console.debug(err)
-      // })
-      // router.reLaunch({ name: 'other' });
+
+      // 或者使用这种方式
+      // this.$router
+      //   .push({ name: "other" })
+      //   .then((res) => {
+      //     console.debug(res);
+      //   })
+      //   .catch((err) => {
+      //     console.debug(err);
+      //   });
     }, 2000);
   },
 });

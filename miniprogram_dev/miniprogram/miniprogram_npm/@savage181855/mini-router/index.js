@@ -62,6 +62,230 @@ function injectRouter(router) {
     };
 }
 
+class AdvanceRouter {
+    constructor(routes) {
+        this.params = null;
+        this.route = null;
+        this.toRoute = null;
+        this.jumpObject = {};
+        this.beforeHooks = [];
+        this.afterHooks = [];
+        this.routeSuccessFns = [];
+        this.routeFailFns = [];
+        this.routes = routes;
+    }
+    beforeEnter(fn) {
+        registerHook(this.beforeHooks, fn);
+    }
+    afterEnter(fn) {
+        registerHook(this.afterHooks, fn);
+    }
+    routeOptionsCheck(r) {
+        if (!r.name && !r.path)
+            return false;
+        this.params = r.params;
+        this.toRoute = this.getCurrentRoute();
+        return true;
+    }
+    push(r) {
+        if (!this.routeOptionsCheck(r))
+            return;
+        const obj = {};
+        const promise = new Promise((resolve, reject) => {
+            obj.resolve = resolve;
+            obj.reject = reject;
+            obj.fn = () => {
+                var _a;
+                const route = this.routes.filter((item) => item.name === r.name || item.path === r.path)[0];
+                setTimeout(() => {
+                    if ((route === null || route === void 0 ? void 0 : route.type) === "tab") {
+                        wx.switchTab({
+                            url: route.path,
+                            success: (res) => resolve(res),
+                            fail: (err) => reject(err),
+                        });
+                    }
+                    const pages = getCurrentPages();
+                    const index = pages.findIndex((item) => {
+                        "/" + item.route === (route === null || route === void 0 ? void 0 : route.path);
+                    });
+                    if (index !== -1) {
+                        const level = pages.length - index;
+                        wx.navigateBack({
+                            delta: level,
+                            success: (res) => resolve(res),
+                            fail: (err) => reject(err),
+                        });
+                    }
+                    else {
+                        wx[pages.length === 10 ? "redirectTo" : "navigateTo"]({
+                            url: route === null || route === void 0 ? void 0 : route.path,
+                            success: (res) => resolve(res),
+                            fail: (err) => reject(err),
+                        });
+                    }
+                }, (_a = r.delay) !== null && _a !== void 0 ? _a : 0);
+            };
+        });
+        obj.promise = promise;
+        this.jumpObject = obj;
+        this.handleRouteGuard();
+        return promise;
+    }
+    replace(r) {
+        if (!this.routeOptionsCheck(r))
+            return;
+        const obj = {};
+        const promise = new Promise((resolve, reject) => {
+            obj.resolve = resolve;
+            obj.reject = reject;
+            obj.fn = () => {
+                var _a;
+                const route = this.routes.filter((item) => item.name === r.name || item.path === r.path)[0];
+                setTimeout(() => {
+                    wx.redirectTo({
+                        url: route.path,
+                        success: (res) => resolve(res),
+                        fail: (err) => reject(err),
+                    });
+                }, (_a = r.delay) !== null && _a !== void 0 ? _a : 0);
+            };
+        });
+        obj.promise = promise;
+        this.jumpObject = obj;
+        this.handleRouteGuard();
+        return promise;
+    }
+    back(r) {
+        if (!this.routeOptionsCheck(r))
+            return;
+        const route = this.routes.filter((item) => item.name === r.name || item.path === r.path)[0];
+        let level;
+        if (r.level) {
+            level = r.level;
+        }
+        else {
+            const pages = getCurrentPages();
+            const index = pages.findIndex((item) => {
+                item.route === (route === null || route === void 0 ? void 0 : route.path);
+            });
+            if (index !== -1) {
+                level = pages.length - index;
+            }
+        }
+        const obj = {};
+        const promise = new Promise((resolve, reject) => {
+            obj.resolve = resolve;
+            obj.reject = reject;
+            obj.fn = () => {
+                var _a;
+                setTimeout(() => {
+                    wx.navigateBack({
+                        delta: level,
+                        success: (res) => resolve(res),
+                        fail: (err) => reject(err),
+                    });
+                }, (_a = r.delay) !== null && _a !== void 0 ? _a : 0);
+            };
+        });
+        obj.promise = promise;
+        this.jumpObject = obj;
+        this.handleRouteGuard();
+        return promise;
+    }
+    reLaunch(r) {
+        if (!this.routeOptionsCheck(r))
+            return;
+        const obj = {};
+        const promise = new Promise((resolve, reject) => {
+            obj.resolve = resolve;
+            obj.reject = reject;
+            obj.fn = () => {
+                var _a;
+                const route = this.routes.filter((item) => item.name === r.name || item.path === r.path)[0];
+                setTimeout(() => {
+                    wx.reLaunch({
+                        url: route.path,
+                        success: (res) => resolve(res),
+                        fail: (err) => reject(err),
+                    });
+                }, (_a = r.delay) !== null && _a !== void 0 ? _a : 0);
+            };
+        });
+        obj.promise = promise;
+        this.jumpObject = obj;
+        this.handleRouteGuard();
+        return promise;
+    }
+    getPage(index = 1) {
+        const pages = getCurrentPages();
+        return pages[pages.length - index];
+    }
+    handleRouteGuard() {
+        const queue = this.beforeHooks;
+        const iterator = (hook, next) => {
+            try {
+                hook(this.route, this.toRoute, (to) => {
+                    if (to === false) {
+                        this.jumpObject.reject({ msg: "this route has been blocked" });
+                    }
+                    else if (typeof to === "object" &&
+                        (typeof to.path === "string" || typeof to.name === "string")) {
+                        to.replace ? this.replace(to) : this.push(to);
+                    }
+                    else if (typeof to === "string") {
+                        this.push({ name: to, path: to });
+                    }
+                    else {
+                        next(to);
+                    }
+                });
+            }
+            catch (error) {
+                console.error(error);
+            }
+        };
+        runQueue(queue, iterator, () => {
+            // debugger;
+            this.jumpObject.fn();
+            this.jumpObject.promise
+                .then((res) => {
+                this.afterHooks.forEach((fn) => fn(this.route, this.toRoute));
+                this.routeSuccessFns.forEach((item) => item(res));
+                this.route = this.getCurrentRoute();
+                this.toRoute = null;
+            })
+                .catch((err) => {
+                this.routeFailFns.forEach((item) => item(err));
+            });
+        });
+    }
+    getCurrentRoute() {
+        const url = this.getCurrPage().route;
+        const route = this.routes.filter((item) => item.path === "/" + url)[0];
+        return route;
+    }
+    onRouteSuccess(fn) {
+        return registerHook(this.routeSuccessFns, fn);
+    }
+    onRouteFail(fn) {
+        return registerHook(this.routeFailFns, fn);
+    }
+    getCurrPage() {
+        return this.getPage(1);
+    }
+    getPrevPage() {
+        return this.getPage(2);
+    }
+    getParams() {
+        const p = this.params;
+        return p;
+    }
+    inject() {
+        injectRouter(this);
+    }
+}
+
 class PlainRouter {
     constructor() {
         this.params = null;
@@ -88,7 +312,7 @@ class PlainRouter {
     }
     navigateTo(r) {
         if (!this.routeOptionsCheck(r))
-            return;
+            return Promise.reject("The path parameter must be provided");
         const obj = {};
         const promise = new Promise((resolve, reject) => {
             obj.resolve = resolve;
@@ -109,7 +333,7 @@ class PlainRouter {
                         });
                     }
                     else {
-                        wx.navigateTo({
+                        wx[pages.length === 10 ? 'redirectTo' : 'navigateTo']({
                             url: r === null || r === void 0 ? void 0 : r.path,
                             success: (res) => resolve(res),
                             fail: (err) => reject(err),
@@ -125,7 +349,7 @@ class PlainRouter {
     }
     switchTab(r) {
         if (!this.routeOptionsCheck(r))
-            return;
+            return Promise.reject("The path parameter must be provided");
         const obj = {};
         const promise = new Promise((resolve, reject) => {
             obj.resolve = resolve;
@@ -148,7 +372,7 @@ class PlainRouter {
     }
     redirectTo(r) {
         if (!this.routeOptionsCheck(r))
-            return;
+            return Promise.reject("The path parameter must be provided");
         const obj = {};
         const promise = new Promise((resolve, reject) => {
             obj.resolve = resolve;
@@ -171,7 +395,7 @@ class PlainRouter {
     }
     navigateBack(r) {
         if (!this.routeOptionsCheck(r))
-            return;
+            return Promise.reject("The path parameter must be provided");
         let level;
         if (r.level) {
             level = r.level;
@@ -207,7 +431,7 @@ class PlainRouter {
     }
     reLaunch(r) {
         if (!this.routeOptionsCheck(r))
-            return;
+            return Promise.reject("The path parameter must be provided");
         const obj = {};
         const promise = new Promise((resolve, reject) => {
             obj.resolve = resolve;
@@ -255,7 +479,6 @@ class PlainRouter {
             }
         };
         runQueue(queue, iterator, () => {
-            // debugger;
             this.jumpObject.fn();
             this.jumpObject.promise
                 .then((res) => {
@@ -287,7 +510,6 @@ class PlainRouter {
     }
     getParams() {
         const p = this.params;
-        this.params = null;
         return p;
     }
     inject() {
@@ -295,5 +517,5 @@ class PlainRouter {
     }
 }
 
-export { PlainRouter, injectRouter };
+export { AdvanceRouter, PlainRouter, injectRouter };
 //# sourceMappingURL=index.js.map

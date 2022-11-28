@@ -14,12 +14,12 @@ export declare class PlainRouter {
     private routeFailFns;
     beforeEnter(fn: Callback): void;
     afterEnter(fn: Callback): void;
-    routeOptionsCheck(r: PlainRouteOptions): boolean;
-    navigateTo(r: PlainRouteOptions): Promise<WechatMiniprogram.GeneralCallbackResult> | undefined;
-    switchTab(r: PlainRouteOptions): Promise<WechatMiniprogram.GeneralCallbackResult> | undefined;
-    redirectTo(r: PlainRouteOptions): Promise<WechatMiniprogram.GeneralCallbackResult> | undefined;
-    navigateBack(r: RouteBackOptions<PlainRouteOptions>): Promise<WechatMiniprogram.GeneralCallbackResult> | undefined;
-    reLaunch(r: PlainRouteOptions): Promise<WechatMiniprogram.GeneralCallbackResult> | undefined;
+    private routeOptionsCheck;
+    navigateTo(r: PlainRouteOptions): Promise<WechatMiniprogram.GeneralCallbackResult>;
+    switchTab(r: PlainRouteOptions): Promise<WechatMiniprogram.GeneralCallbackResult>;
+    redirectTo(r: PlainRouteOptions): Promise<WechatMiniprogram.GeneralCallbackResult>;
+    navigateBack(r: RouteBackOptions<PlainRouteOptions>): Promise<WechatMiniprogram.GeneralCallbackResult>;
+    reLaunch(r: PlainRouteOptions): Promise<WechatMiniprogram.GeneralCallbackResult>;
     private getPage;
     private handleRouteGuard;
     private getCurrentRoute;

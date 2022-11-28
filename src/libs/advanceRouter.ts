@@ -12,7 +12,7 @@ import {
 import { registerHook, runQueue } from "./utils";
 import { injectRouter } from "./injectRouter";
 
-export class advanceRouter {
+export class AdvanceRouter {
   constructor(routes: RouteConfigRaw[]) {
     this.routes = routes;
   }
@@ -77,7 +77,7 @@ export class advanceRouter {
               fail: (err: CallbackResult) => reject(err),
             });
           } else {
-            wx.navigateTo({
+            (wx as any)[pages.length === 10 ? "redirectTo" : "navigateTo"]({
               url: route?.path,
               success: (res: CallbackResult) => resolve(res),
               fail: (err: CallbackResult) => reject(err),
@@ -262,7 +262,6 @@ export class advanceRouter {
 
   getParams() {
     const p = this.params;
-    this.params = null;
     return p;
   }
 

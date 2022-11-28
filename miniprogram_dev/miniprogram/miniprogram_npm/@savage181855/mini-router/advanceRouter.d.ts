@@ -1,23 +1,25 @@
 /// <reference types="miniprogram-api-typings" />
 /// <reference types="miniprogram-api-typings" />
-import { RouteConfigRaw, RouteOptions, CallbackResult, Callback, RouteBackOptions } from "./types";
-declare class AdvanceRouter {
+/// <reference types="miniprogram-api-typings" />
+import { RouteConfigRaw, AdvanceRouteOptions, CallbackResult, Callback, RouteBackOptions } from "./types";
+export declare class AdvanceRouter {
     constructor(routes: RouteConfigRaw[]);
     private params;
     private routes;
     route: RouteConfigRaw | null;
     private toRoute;
-    private jumpFn;
+    private jumpObject;
     private beforeHooks;
     private afterHooks;
     private routeSuccessFns;
     private routeFailFns;
     beforeEnter(fn: Callback): void;
     afterEnter(fn: Callback): void;
-    push(r: RouteOptions): void;
-    replace(r: RouteOptions): void;
-    back(r: RouteBackOptions): void;
-    reLaunch(r: RouteOptions): void;
+    routeOptionsCheck(r: AdvanceRouteOptions): boolean;
+    push(r: AdvanceRouteOptions): Promise<WechatMiniprogram.GeneralCallbackResult> | undefined;
+    replace(r: AdvanceRouteOptions): Promise<WechatMiniprogram.GeneralCallbackResult> | undefined;
+    back(r: RouteBackOptions<AdvanceRouteOptions>): Promise<WechatMiniprogram.GeneralCallbackResult> | undefined;
+    reLaunch(r: AdvanceRouteOptions): Promise<WechatMiniprogram.GeneralCallbackResult> | undefined;
     private getPage;
     private handleRouteGuard;
     private getCurrentRoute;
@@ -28,7 +30,3 @@ declare class AdvanceRouter {
     getParams(): any;
     inject(): void;
 }
-export declare function createRouter(config: {
-    routes: RouteConfigRaw[];
-}): AdvanceRouter;
-export {};

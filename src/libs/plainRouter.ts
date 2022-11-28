@@ -26,23 +26,24 @@ export class PlainRouter {
   private routeSuccessFns: Callback[] = [];
   private routeFailFns: Callback[] = [];
 
-  beforeEnter(fn: Callback) {
+  public beforeEnter(fn: Callback) {
     registerHook(this.beforeHooks, fn);
   }
 
-  afterEnter(fn: Callback) {
+  public afterEnter(fn: Callback) {
     registerHook(this.afterHooks, fn);
   }
 
-  routeOptionsCheck(r: PlainRouteOptions) {
+  private routeOptionsCheck(r: PlainRouteOptions) {
     if (!r.path) return false;
     this.params = r.params;
     this.toRoute = this.getCurrentRoute();
     return true;
   }
 
-  navigateTo(r: PlainRouteOptions) {
-    if (!this.routeOptionsCheck(r)) return;
+  public navigateTo(r: PlainRouteOptions) {
+    if (!this.routeOptionsCheck(r))
+      return Promise.reject("The path parameter must be provided");
 
     const obj = {} as JumpObject;
     const promise = new Promise<CallbackResult>((resolve, reject) => {
@@ -63,7 +64,7 @@ export class PlainRouter {
               fail: (err: CallbackResult) => reject(err),
             });
           } else {
-            wx.navigateTo({
+            (wx as any)[pages.length === 10 ? 'redirectTo': 'navigateTo']({
               url: r?.path,
               success: (res: CallbackResult) => resolve(res),
               fail: (err: CallbackResult) => reject(err),
@@ -80,8 +81,9 @@ export class PlainRouter {
     return promise;
   }
 
-  switchTab(r: PlainRouteOptions) {
-    if (!this.routeOptionsCheck(r)) return;
+  public switchTab(r: PlainRouteOptions) {
+    if (!this.routeOptionsCheck(r))
+      return Promise.reject("The path parameter must be provided");
 
     const obj = {} as JumpObject;
     const promise = new Promise<CallbackResult>((resolve, reject) => {
@@ -105,8 +107,9 @@ export class PlainRouter {
     return promise;
   }
 
-  redirectTo(r: PlainRouteOptions) {
-    if (!this.routeOptionsCheck(r)) return;
+  public redirectTo(r: PlainRouteOptions) {
+    if (!this.routeOptionsCheck(r))
+      return Promise.reject("The path parameter must be provided");
 
     const obj = {} as JumpObject;
     const promise = new Promise<CallbackResult>((resolve, reject) => {
@@ -130,8 +133,9 @@ export class PlainRouter {
     return promise;
   }
 
-  navigateBack(r: RouteBackOptions<PlainRouteOptions>) {
-    if (!this.routeOptionsCheck(r)) return;
+  public navigateBack(r: RouteBackOptions<PlainRouteOptions>) {
+    if (!this.routeOptionsCheck(r))
+      return Promise.reject("The path parameter must be provided");
 
     let level: number;
     if (r.level) {
@@ -168,8 +172,9 @@ export class PlainRouter {
     return promise;
   }
 
-  reLaunch(r: PlainRouteOptions) {
-    if (!this.routeOptionsCheck(r)) return;
+  public reLaunch(r: PlainRouteOptions) {
+    if (!this.routeOptionsCheck(r))
+      return Promise.reject("The path parameter must be provided");
 
     const obj = {} as JumpObject;
     const promise = new Promise<CallbackResult>((resolve, reject) => {
@@ -220,9 +225,7 @@ export class PlainRouter {
     };
 
     runQueue(queue, iterator, () => {
-      // debugger;
       this.jumpObject.fn();
-
       this.jumpObject.promise
         .then((res) => {
           this.afterHooks.forEach((fn) => fn(this.route, this.toRoute));
@@ -241,29 +244,28 @@ export class PlainRouter {
     return url;
   }
 
-  onRouteSuccess(fn: (o: CallbackResult) => any) {
+  public onRouteSuccess(fn: (o: CallbackResult) => any) {
     return registerHook(this.routeSuccessFns, fn);
   }
 
-  onRouteFail(fn: (o: CallbackResult) => any) {
+  public onRouteFail(fn: (o: CallbackResult) => any) {
     return registerHook(this.routeFailFns, fn);
   }
 
-  getCurrPage() {
+  public getCurrPage() {
     return this.getPage(1);
   }
 
-  getPrevPage() {
+  public getPrevPage() {
     return this.getPage(2);
   }
 
-  getParams() {
+  public getParams() {
     const p = this.params;
-    this.params = null;
     return p;
   }
 
-  inject() {
+  public inject() {
     injectRouter(this);
   }
 }

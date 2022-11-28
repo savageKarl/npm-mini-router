@@ -1,6 +1,6 @@
 {
   "name": "@savage181855/mini-router",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "main": "miniprogram_dist/index.js",
   "author": "savage",
   "license": "GPL-3.0",
